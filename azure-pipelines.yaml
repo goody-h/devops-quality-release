@@ -1,0 +1,147 @@
+name: Azure Pipelines
+variables:
+  python.version: '3.7.6'
+stages:
+- stage: Build
+  jobs:
+  - job: Build
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+      # Start provisioning tasks for terraform
+    - task: DownloadSecureFile@1
+      name: publicSSH
+      displayName: 'Download Public SSH Key'
+      inputs:
+        secureFile: 'tf_id_rsa.pub'
+    - task: TerraformInstaller@0
+      displayName: 'Install terraform'
+      inputs:
+        terraformVersion: '0.12.26'
+    - script: 'cd terraform/environments/test && terraform init' 
+      displayName: 'Initialize terraform'
+    - script:
+        cd terraform/environments/test &&
+        terraform apply -auto-approve
+        -var="public_key_path=$(publicSSH.secureFilePath)"
+      displayName: 'Apply terraform configuration'
+      # Start postman tests
+    - script: |
+        sudo npm install newman -g
+        sudo npm install newman-reporter-junitfull -g
+      displayName: 'Install postman dependencies'
+    - script:
+        newman run "$(System.DefaultWorkingDirectory)/automatedtesting/postman/Regression-test.postman_collection.json"
+        -e "$(System.DefaultWorkingDirectory)/automatedtesting/postman/udacity-dev.postman_environment.json"
+        -r cli,junitfull --reporter-junitfull-export JUnitReport-regression.xml
+      displayName: 'Run regression test'
+    - script:
+        newman run "$(System.DefaultWorkingDirectory)/automatedtesting/postman/Data-Validation-test.postman_collection.json"
+        -e "$(System.DefaultWorkingDirectory)/automatedtesting/postman/udacity-dev.postman_environment.json"
+        -r cli,junitfull --reporter-junitfull-export JUnitReport-data-validation.xml
+      displayName: 'Run Data Validation test'
+    - task: PublishTestResults@2
+      displayName: 'Publish integrations test'
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: 'JUnitReport*.xml'
+        mergeTestResults: true
+        testRunTitle: 'Publish postman test result'
+      # Publish artifacts for deployment
+    - template: templates/publish-archive.yaml
+      parameters:
+        name: fakerestapi
+        path: '$(System.DefaultWorkingDirectory)/automatedtesting/jmeter/fakerestapi'
+    - template: templates/publish-archive.yaml
+      parameters:
+        name: UITest
+        path: '$(System.DefaultWorkingDirectory)/automatedtesting/selenium/login.py'
+
+- stage: Deploy
+  jobs:
+  - deployment: FakeRestAPI
+    pool:
+      vmImage: 'ubuntu-latest'
+    environment: 'TEST'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            # Deploy to app service
+          - task: AzureWebApp@1
+            displayName: 'Deploy Azure Web App'
+            inputs:
+              azureSubscription: 'Visual Studio Enterprise Subscription (40fe838b-6ee9-466a-959b-c681d6a4f4c1)'
+              appName: 'dev-AppService'
+              appType: webApp
+              package: $(Pipeline.Workspace)/drop-fakerestapi/$(Build.BuildId)-fakerestapi.zip          
+  - deployment: VMDeploy
+    displayName: Deploy UI Test suite
+    environment:
+      name:  dev
+      resourceType: VirtualMachine
+      tags: test
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            # Start Selenium ui tests
+          - task: Bash@3
+            displayName: Install UI Test dependencies
+            inputs:
+              targetType: 'inline'
+              script: |
+                #! /bin/bash
+                
+                sudo apt-get update
+                sudo apt-get upgrade -y
+                sudo apt-get install python3-pip unzip expect -y
+                
+                wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+                sudo dpkg --install google-chrome-stable_current_amd64.deb
+                sudo apt install --assume-yes --fix-broken
+
+                pip3 install --user selenium
+
+                wget https://chromedriver.storage.googleapis.com/83.0.4103.39/chromedriver_linux64.zip
+                unzip chromedriver*.zip
+                sudo mv chromedriver -f /usr/bin
+          - task: Bash@3
+            displayName: Run UI Test
+            inputs:
+              targetType: 'inline'
+              script: |
+                #! /bin/bash
+                
+                cd $(Pipeline.Workspace)/drop-UITest
+                unzip -o $(Build.BuildId)-UITest.zip
+                mkdir -p ~/logs
+                unbuffer python3 login.py | tee -a ~/logs/output.log.txt
+
+- stage: PostDeploy
+  jobs:
+  - job: PeformanceTest
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+      # Start Jmeter peformance tests
+    - script: |
+        sudo apt-get install unzip -y
+        wget https://downloads.apache.org//jmeter/binaries/apache-jmeter-5.3.zip
+        unzip apache-jmeter-5.3.zip
+        cd apache-jmeter-5.3/bin
+        sudo ln -r -s -f jmeter /usr/bin
+      displayName: 'Install dependencies for Peformance testing'    
+    - script: |
+        cd $(System.DefaultWorkingDirectory)/automatedtesting/jmeter
+        mkdir -p peformance-report
+        echo Starting Stress test
+        jmeter -n -t StressTest.jmx -l result-file-stress.csv -e -f -o ./peformance-report/stress-test
+        sleep 10s
+        echo Starting Endurance test
+        jmeter -n -t EnduranceTest.jmx -l result-file-endurance.csv -e -f -o ./peformance-report/endurance-test
+      displayName: 'Run Peformance test suite'
+    - template: templates/publish-archive.yaml
+      parameters:
+        name: peformance-report
+        path: '$(System.DefaultWorkingDirectory)/automatedtesting/jmeter/peformance-report'

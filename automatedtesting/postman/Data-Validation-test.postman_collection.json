@@ -1,0 +1,348 @@
+{
+	"info": {
+		"_postman_id": "4f142e82-b48f-4524-a98f-f574bf358cba",
+		"name": "Data Validation test",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create Employee",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "e35482cc-b658-4012-96ee-89759a376eb0",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Successful response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"success\");",
+							"});",
+							"",
+							"var jsonData = pm.response.json();",
+							"var nameUpdate = pm.environment.get(\"name\");",
+							"pm.test(\"Check set name\", function () {",
+							"    pm.expect(jsonData.data.name).to.eql(nameUpdate);",
+							"});",
+							"",
+							"var salary = pm.environment.get(\"salary\");",
+							"pm.test(\"Check set salary\", function () {",
+							"    pm.expect(jsonData.data.salary).to.eql(salary);",
+							"});",
+							"",
+							"var age = pm.environment.get(\"age\");",
+							"pm.test(\"Check set age\", function () {",
+							"    pm.expect(jsonData.data.age).to.eql(age);",
+							"});",
+							"",
+							"var json = pm.response.json();",
+							"pm.environment.set(\"id\", json.data.id);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"{{name}}\",\n    \"salary\": \"{{salary}}\",\n    \"age\": \"{{age}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://dummy.restapiexample.com/api/v1/create",
+					"protocol": "http",
+					"host": [
+						"dummy",
+						"restapiexample",
+						"com"
+					],
+					"path": [
+						"api",
+						"v1",
+						"create"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Employee by ID",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "48472740-a960-45eb-b07e-9a5fb583d803",
+						"exec": [
+							"",
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Successful response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"success\");",
+							"});",
+							"",
+							"var jsonData = pm.response.json();",
+							"var nameUpdate = pm.environment.get(\"nameUpdate\");",
+							"pm.test(\"Check updated name\", function () {",
+							"    pm.expect(jsonData.data.employee_name).to.eql(nameUpdate);",
+							"});",
+							"",
+							"var salary = pm.environment.get(\"salary\");",
+							"pm.test(\"Check set salary\", function () {",
+							"    pm.expect(jsonData.data.employee_salary).to.eql(salary);",
+							"});",
+							"",
+							"var age = pm.environment.get(\"age\");",
+							"pm.test(\"Check set age\", function () {",
+							"    pm.expect(jsonData.data.employee_age).to.eql(age);",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"{{nameUpdate}}\",\n    \"salary\": \"{{salary}}\",\n    \"age\": \"{{age}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://dummy.restapiexample.com/api/v1/update/{{id}}",
+					"protocol": "http",
+					"host": [
+						"dummy",
+						"restapiexample",
+						"com"
+					],
+					"path": [
+						"api",
+						"v1",
+						"update",
+						"{{id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get All Employees",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "1f6c7256-67c5-4fd4-a537-b41ceff087d4",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Successful response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"success\");",
+							"});",
+							"",
+							"var id = pm.environment.get(\"id\");",
+							"var newEmployee;",
+							"var foundEmployee =  false;",
+							"pm.test(\"Check for new employee in list\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    for (var i=0; i< jsonData.data.length; i++) {",
+							"        var employee = jsonData.data[i];",
+							"        if (employee.id == id) {",
+							"            newEmployee = employee;",
+							"            foundEmployee = true;",
+							"        }",
+							"    }",
+							"    pm.expect(foundEmployee).to.eql(true);",
+							"});",
+							"",
+							"var name = pm.environment.get(\"nameUpdate\");",
+							"pm.test(\"Check set name\", function () {",
+							"    pm.expect(newEmployee.employee_name).to.eql(name);",
+							"});",
+							"",
+							"var salary = pm.environment.get(\"salary\");",
+							"pm.test(\"Check set salary\", function () {",
+							"    pm.expect(newEmployee.employee_salary).to.eql(salary);",
+							"});",
+							"",
+							"var age = pm.environment.get(\"age\");",
+							"pm.test(\"Check set age\", function () {",
+							"    pm.expect(newEmployee.employee_age).to.eql(age);",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://dummy.restapiexample.com/api/v1/employees",
+					"protocol": "http",
+					"host": [
+						"dummy",
+						"restapiexample",
+						"com"
+					],
+					"path": [
+						"api",
+						"v1",
+						"employees"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Employee by ID",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "72046a8f-50eb-4dbd-a8bf-b5e955bc6c52",
+						"exec": [
+							"pm.test(\"Successful response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"success\");",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://dummy.restapiexample.com/api/v1/employee/1",
+					"protocol": "http",
+					"host": [
+						"dummy",
+						"restapiexample",
+						"com"
+					],
+					"path": [
+						"api",
+						"v1",
+						"employee",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Employee by ID",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "80df84e7-c4a4-4401-8e5c-e6e2e5f9e0c4",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Successful response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"success\");",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://dummy.restapiexample.com/api/v1/delete/{{id}}",
+					"protocol": "http",
+					"host": [
+						"dummy",
+						"restapiexample",
+						"com"
+					],
+					"path": [
+						"api",
+						"v1",
+						"delete",
+						"{{id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get All Employees 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "86ff15b3-131c-4920-a504-04cd0005ae10",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Successful response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"success\");",
+							"});",
+							"",
+							"var id = pm.environment.get(\"id\");",
+							"var newEmployee;",
+							"var foundEmployee =  false;",
+							"pm.test(\"Check for employee in list\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    for (var i=0; i< jsonData.data.length; i++) {",
+							"        var employee = jsonData.data[i];",
+							"        if (employee.id == id) {",
+							"            newEmployee = employee;",
+							"            foundEmployee = true;",
+							"        }",
+							"    }",
+							"    pm.expect(foundEmployee).to.eql(false);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://dummy.restapiexample.com/api/v1/employees",
+					"protocol": "http",
+					"host": [
+						"dummy",
+						"restapiexample",
+						"com"
+					],
+					"path": [
+						"api",
+						"v1",
+						"employees"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}

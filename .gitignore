@@ -1,0 +1,10 @@
+**/*.exe
+**/*.log
+**/result*.csv
+**/peformance-report/
+
+# Crash log files
+crash.log
+
+# cs code config
+.vscode/

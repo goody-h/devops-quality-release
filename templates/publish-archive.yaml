@@ -1,0 +1,17 @@
+parameters:
+- name: path
+  type: string
+- name: name
+  type: string
+
+steps:
+- task: ArchiveFiles@2
+  displayName: 'Archive ${{ parameters.name }} Artifact'
+  inputs:
+    rootFolderOrFile: ${{ parameters.path }}
+    includeRootFolder: false
+    archiveType: 'zip'
+    archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId)-${{ parameters.name }}.zip'
+- publish: $(Build.ArtifactStagingDirectory)/$(Build.BuildId)-${{ parameters.name }}.zip
+  displayName: 'Upload ${{ parameters.name }} Artifact'
+  artifact: drop-${{ parameters.name }}
